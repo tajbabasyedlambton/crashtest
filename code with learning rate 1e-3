@@ -1,11 +1,22 @@
 """ Trains an agent with (stochastic) Policy Gradients on Pong. Uses OpenAI Gym. """
 import numpy as np
-import pickle as pickle
+import pickle
 import gym
+from datetime import datetime
+import time
+from tqdm import tqdm
+from time import sleep
+import psutil
+import os
+import datetime
+
+start_time = time.time()
+datetime_start_time = datetime.datetime.now()
+
 
 # hyperparameters
 H = 200 # number of hidden layer neurons
-batch_size = 10 # every how many episodes to do a param update?
+batch_size = 5 # every how many episodes to do a param update?
 learning_rate = 1e-3
 gamma = 0.99 # discount factor for reward
 decay_rate = 0.99 # decay factor for RMSProp leaky sum of grad^2
@@ -122,8 +133,30 @@ while True:
 
     # boring book-keeping
     running_reward = reward_sum if running_reward is None else running_reward * 0.99 + reward_sum * 0.01
-    print('resetting env. episode reward total was %f. running mean: %f' % (reward_sum, running_reward))
+    #dt = datetime.now()
+    end_time = time.time()
+    end_time_CPU = time.process_time()
+    datetime_end_time = datetime.datetime.now()
+    execution_time = end_time - start_time
+    execution_time_CPU = end_time_CPU - start_time
+    datetime_execution_time = datetime_end_time - datetime_start_time
+    print(('resetting env. episode reward total was %f. running mean: %f' % (reward_sum, running_reward)))
+    print(f"Execution Time: {execution_time} seconds")
+    print(f"CPU Execution Time: {execution_time_CPU} seconds")
+    pid = os.getpid()
+    python_process = psutil.Process(pid)
+    memoryUse = python_process.memory_info()[0]/2.**30
+    print('memory use:', memoryUse)
+    print(psutil.cpu_percent())
+    print(psutil.virtual_memory())  # physical memory usage
+    print('memory % used:', psutil.virtual_memory()[2])
     if episode_number % 100 == 0: pickle.dump(model, open('save.p', 'wb'))
+    if running_reward >= -5.999999:
+      print("End Time:", datetime_end_time)
+      break #setting running mean threshold
     reward_sum = 0
     observation = env.reset() # reset env
     prev_x = None
+
+  if reward != 0: # Pong has either +1 or -1 reward exactly when game ends.
+    print(('ep %d: game finished, reward: %f' % (episode_number, reward)) + ('' if reward == -1 else ' !!!!!!!!'))
